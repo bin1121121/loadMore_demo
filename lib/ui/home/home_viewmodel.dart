@@ -7,20 +7,21 @@ import 'package:loadmore_demo/ui/base/base_viewmodel.dart';
 class HomeViewModel extends BaseViewModel {
   final PostRepository postRepository;
   HomeViewModel({required this.postRepository});
-  int page = 0;
+  int page = 1;
   int limit = 10;
   bool isLoadMore = false;
+  bool isLoading = false;
   List<PostResponse> posts = [];
   ScrollController scrollController = ScrollController();
   String error = "";
 
   void onInit() {
-    isLoadMore = true;
-    getPosts();
-    scrollController.addListener(scrollListener);
+    onRefresh();
   }
 
   Future getPosts() async {
+    if (isLoading) return;
+    isLoading = true;
     final response = await postRepository.getPosts(page, limit);
     if (response.code == ResourceType.requestSuccess) {
       posts.addAll(response.data!);
@@ -29,6 +30,7 @@ class HomeViewModel extends BaseViewModel {
     } else {
       error = response.message;
     }
+    isLoading = false;
     isLoadMore = false;
     notifyListeners();
   }
@@ -42,7 +44,7 @@ class HomeViewModel extends BaseViewModel {
   }
 
   Future onRefresh() async {
-    page = 0;
+    page = 1;
     posts.clear();
     isLoadMore = true;
     if (!scrollController.hasListeners) {
@@ -53,8 +55,8 @@ class HomeViewModel extends BaseViewModel {
   }
 
   void scrollListener() {
-    if (scrollController.position.pixels ==
-        scrollController.position.maxScrollExtent) {
+    if (scrollController.position.pixels >=
+        scrollController.position.maxScrollExtent * 0.9) {
       isLoadMore = true;
       notifyListeners();
       getPosts();
